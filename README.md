@@ -2,4 +2,4 @@
 
 ## Design
 
-![Homepage screenshot](homepage_screenshot_figma.png)
+![Homepage screenshot](./images/homepage_screenshot_figma.png)
