@@ -2,6 +2,6 @@
 
 ## Design
 
-![Homepage screenshot](Homepage screesnhot.png)
+![Homepage screenshot](homepage_screesnhot_figma.png)
 
 
