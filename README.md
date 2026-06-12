@@ -1,8 +1,7 @@
-# test
-## test 2
+# Code and Design
 
-```python
-# from data camp
-some code = code and
-  more code 
-```
+## Design
+
+![Homepage screenshot](Homepage screesnhot.png)
+
+
