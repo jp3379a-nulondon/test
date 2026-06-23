@@ -1,116 +1,86 @@
-
 const inputForm = document.getElementById("ip-input-form");
 const inputBox = document.getElementById("ip-input-field");
 const outputBox = document.getElementById("ip-output-field");
 
-// Disaplay output
+// Local Flask server when testing on your machine, Render when live - auto detected.
+const API_BASE =
+    location.hostname === "localhost" || location.hostname === "127.0.0.1"
+        ? "http://127.0.0.1:5000"
+        : "https://test-14rh.onrender.com";
+
+// Each result category: the field name from the API, its label, and bar colour.
+const CATEGORIES = [
+    { key: "malicious",  label: "Malicious",  color: "#d90429" },
+    { key: "suspicious", label: "Suspicious", color: "#ff9f1c" },
+    { key: "undetected", label: "Undetected", color: "#6c757d" },
+    { key: "harmless",   label: "Harmless",   color: "#2e6e37" },
+];
+
+// Write to the output element, handling both <input>/<textarea> and normal tags.
 function displayOutput(message, isHtml = false) {
-    if (outputBox.tagName === "INPUT" || outputBox.tagName === "TEXTAREA") {
+    const isField = outputBox.tagName === "INPUT" || outputBox.tagName === "TEXTAREA";
+    if (isField) {
         outputBox.value = message.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
+    } else if (isHtml) {
+        outputBox.innerHTML = message;
     } else {
-        if (isHtml) {
-            outputBox.innerHTML = message;
-        } else {
-            outputBox.textContent = message;
-        }
+        outputBox.textContent = message;
     }
 }
 
-// Create percent bars
-function createResultBar(label, value, className) {
-    const percentage = Math.min(value, 100);
-
+// One labelled bar. Width is the value's share of the total so bars stay meaningful
+// VirusTotal returns vendor counts, not percentages.
+function resultBar({ label, color }, value, total) {
+    const width = total > 0 ? (value / total) * 100 : 0;
     return `
-        <div class="result_bar_group">
-            <div class="result_bar_label">
-                <span>${label}</span>
-                <span>${value}/100</span>
+        <div style="display: flex; align-items: center; gap: 20px; margin: 6px 0;">
+            <strong style="width: 90px;">${label}:</strong>
+            <span style="width: 32px; text-align: right;">${value}</span>
+            <div style="width: 220px; background-color: #ddd; border-radius: 10px;">
+                <div style="width: ${width}%; background-color: ${color}; height: 16px; border-radius: 10px;"></div>
             </div>
-
-            <div class="result_bar_background">
-                <div class="result_bar_fill ${className}" style="width: ${percentage}%;"></div>
-            </div>
-        </div>
-    `;
+        </div>`;
 }
 
+// Build the whole results panel from the category list.
+function renderResults(results) {
+    const total = CATEGORIES.reduce((sum, c) => sum + results[c.key], 0);
+    const bars = CATEGORIES.map(c => resultBar(c, results[c.key], total)).join("");
+    return `
+        <strong>VirusTotal Results for: ${results.ip_address}</strong>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            ${bars}
+        </div>`;
+}
 
-// Call API via python script
 async function eventHandler(event) {
     event.preventDefault();
 
-    // Creating a variable from the user input 
     const ipAddress = inputBox.value.trim();
-
     displayOutput("Checking IP address...");
 
-    // Sending the user input to the API via the local python server
     try {
-        const response = await fetch("http://127.0.0.1:5000/api/ip-reputation", {
+        const response = await fetch(`${API_BASE}/api/ip-reputation`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                ip_address: ipAddress
-            })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ip_address: ipAddress }),
         });
 
-        // Creating a variable with the results from the API call
         const data = await response.json();
 
-        // Error checking the result from the API call
         if (!response.ok || !data.success) {
             displayOutput("Error: " + data.error);
             return;
         }
 
-        const results = data.results;
-
-        const output = `
-            <strong>VirusTotal Results for: ${results.ip_address}</strong><br>
-
-            <div style="display: flex; flex-direction: column; align-items: center;">
-
-            
-                <div style="display: flex; align-items: center; gap: 20px; margin: 6px 0;">
-                    <strong style="width: 90px;">Malicious: </strong>
-                    <div style="width: 220px; background-color: #ddd; border-radius: 10px;">
-                        <div style="width: ${results.malicious}%; background-color: #d90429; height: 16px; border-radius: 10px;"></div>
-                    </div>
-                </div>
-
-                <div style="display: flex; align-items: center; gap: 20px; margin: 6px 0;">
-                    <strong style="width: 90px;">Suspicious: </strong>
-                    <div style="width: 220px; background-color: #ddd; border-radius: 10px;">
-                        <div style="width: ${results.suspicious}%; background-color: #ff9f1c; height: 16px; border-radius: 10px;"></div>
-                    </div>
-                </div>
-
-                <div style="display: flex; align-items: center; gap: 20px; margin: 6px 0;">
-                    <strong style="width: 90px;">Undetected:</strong>
-                    <div style="width: 220px; background-color: #ddd; border-radius: 10px;">
-                        <div style="width: ${results.undetected}%; background-color: #6c757d; height: 16px; border-radius: 10px;"></div>
-                    </div>
-                </div>
-
-                <div style="display: flex; align-items: center; gap: 20px; margin: 6px 0;">
-                    <strong style="width: 90px;">Harmless:</strong>
-                    <div style="width: 220px; background-color: #ddd; border-radius: 10px;">
-                        <div style="width: ${results.harmless}%; background-color: #2e6e37; height: 16px; border-radius: 10px;"></div>
-                    </div>
-                </div>
-            </div>    
-    `;
-
-        displayOutput(output, true);
-        console.log("IP check completed:", results);
+        displayOutput(renderResults(data.results), true);
+        console.log("IP check completed:", data.results);
 
     } catch (error) {
-        displayOutput("Error: Could not connect to the Python Flask server. Make sure app.py is running.");
+        // Live setup message, as redner.com server needs to wake up. 
+        displayOutput("Couldn't reach the server — it may be waking up, try again in a moment.");
         console.error("Connection error:", error);
     }
 }
 
 inputForm.addEventListener("submit", eventHandler);
-
