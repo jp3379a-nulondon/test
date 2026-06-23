@@ -1,49 +1,57 @@
 /* Main reusable homepage template background - Black screen area */
 body {
     margin: 0 auto; /* Centers the body content horizontally */
-    position: relative; /* Establishes a positioning context for absolutely positioned child elements */
     width: 100%; /* Sets the width of the body to 100% of the viewport width */
     height: 100%; /* Sets the height of the body to 100% of the viewport height */
     background: #000000; /* Sets the background color of the body to black */
+    
     display: flex; /* Enables flexbox layout for the body */
+    flex-direction: column;
     align-items: center; /* Vertically centers the body content */
     justify-content: center; /* Horizontally centers the body content */
     font-family: 'Inter', sans-serif; /* Sets the font family for the body content */
 }
-
-.homepage_title{
+/* Page titles style class */
+.page_titles {
     font-weight: 800; /* Font weight for the button text */
     font-size: 35px; /* Font size for the button text */
     line-height: 42px; /* Line height for the button text */
     color: #ffffff; /* Button text color */
 
     text-align: center;
-    
-    position: absolute;
-    top: 30px;
 
+    margin: 100px 10px 40px 10px; /* Margin around the page title */
+}
 
+/* Paragraph style class */
+.paragraph_style {
+    font-size: 18px; /* Font size for the paragraph text */
+    line-height: 28px; /* Line height for the paragraph text */
+    color: #ffffff; /* Paragraph text color */
+
+    text-align: justify;
+    width: 70%; /* Sets the width of the paragraph to 70% of the viewport width */
+    max-width: 900px;
+
+    margin: 10px 0px 20px 0px;
 }
 
 /* Main image */
 .homepage_image {
     width: 388px;
-    height: 680px;
+    height: 630px;
 
     background-image: url("./images/homepage_image.png"); /* Location of the image */
     background-size: contain; /* stops image from being cut off */
     background-position: center; /* centers the image in the div */
     background-repeat: no-repeat; /* prevents the image from repeating if the div is larger than the image */
-
-    transform: translateY(100px); /* Adjust the vertical position of the image */
 }
 
 /* Enter button */
 .homepage_enter_button {
-    position: absolute; /* Positions the button absolutely within its containing element */ 
+    box-sizing: border-box;
     width: 196px; /* Sets the width of the button */
     height: 72px; /* Sets the height of the button */
-    top: 750px; /* Sets the vertical position of the button */
 
     background: #000000; /* Button background color */
     border: 3px solid #FFFFFF; /* Button border color and thickness */
@@ -51,8 +59,98 @@ body {
 
     font-weight: 800; /* Font weight for the button text */
     font-size: 35px; /* Font size for the button text */
-    line-height: 42px; /* Line height for the button text */
     color: #FFFFFF; /* Button text color */
 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
     cursor: pointer; /* Changes the cursor to a pointer when hovering over the button */
+    text-decoration: none; /* Removes underline from the button text if it's a link */
+}
+
+/* IP Input and button container */
+.ip_input {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 30px;
+    margin-top: 50px;
+}
+
+/* IP address input box */
+.ip_address_input {
+    
+    position: fixed;
+    top: 650px;
+    left: 50%; /* Positions the input box in the center of the page */
+    transform: translateX(-50%); /* Centers the input box horizontally on the page */
+
+    box-sizing: border-box;
+
+    width: 260px;
+    height: 60px;
+
+    background: #ffffff;
+    border: 3px solid #ffffff;
+    border-radius: 20px;
+
+    font-size: 22px;
+    font-weight: 600;
+    text-align: center;
+
+    color: #000000;
+}
+
+/* Submit button */
+.submit_button {
+    box-sizing: border-box;
+    width: 260px; /* Sets the width of the button */
+    height: 72px; /* Sets the height of the button */
+
+    background: #000000; /* Button background color */
+    border: 3px solid #FFFFFF; /* Button border color and thickness */
+    border-radius: 20px; /* Rounded corners for the button */
+
+    font-weight: 800; /* Font weight for the button text */
+    font-size: 35px; /* Font size for the button text */
+    color: #FFFFFF; /* Button text color */
+
+    position: fixed;
+    top: 750px;
+    left: 50%; /* Positions the input box in the center of the page */
+    transform: translateX(-50%); /* Centers the input box horizontally on the page */
+
+    cursor: pointer; /* Changes the cursor to a pointer when hovering over the button */
+    text-decoration: none; /* Removes underline from the button text if it's a link */
+}
+
+/* Results */
+.results {
+    font-size: 18px; /* Font size for the paragraph text */
+    line-height: 28px; /* Line height for the paragraph text */
+    color: #ffffff; /* Paragraph text color */
+
+    text-align: center;
+    width: 70%; /* Sets the width of the paragraph to 70% of the viewport width */
+    max-width: 900px;
+
+    margin: 10px 10px 10px 10px;
+}
+
+/* Results page image */
+.result_image {
+
+    width: 180px;
+    height: 160px;
+
+    object-fit: contain;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+
+    cursor: pointer; /* Makes the image look clickable*/
+
 }

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="index.css">
+    <title>IP Checker</title>
+
+</head>
+<body>
+    
+    <header>
+        <a href="index.html">
+            <img src="images/cyber_check_logo.png" class="result_image" alt="Cyber Check Logo">
+        </a>
+        <h1 class="page_titles">Welcome to CYBER CHECK!</h1>
+    </header>
+
+    <p class="paragraph_style">
+        CYBER CHECK is a tool designed to help you identify potential malicious IP addresses connecting to your network.
+    </p>
+    <p class="paragraph_style">
+        By entering an IP address, you can quickly scan for common security issues and receive recommendations for improving your network's security.
+    </p>
+    <p class="paragraph_style"> 
+        Enter an IP address to check its credibility.
+    </p>
+
+    <p id="ip-output-field" class="results" ></p> <!-- Results area -->
+
+    <div class="ip_input">
+        <form id="ip-input-form" action="/submit-ip" method="post">
+            <input type="text" placeholder="Enter IP Address" class="ip_address_input" id="ip-input-field">
+            <input type="submit" value="Submit" class="submit_button" id="ip-input-btn">
+        </form>
+        
+    </div>
+</body>
+<script src="index.js"></script> 
+</html>
+
+
