@@ -20,32 +20,46 @@ Need to install:
 
 """
 
+# --- Configuration -----------------------------------------------------------
 
-# Load API key from .env file.
 load_dotenv()
 
-# This creates a Flask application instance.
-app = Flask(__name__) 
-
-# Creating a variable to store the API key from the .env file.
 API_KEY = os.getenv("API_KEY")
+if not API_KEY:
+    # Fail fast with a clear message instead of a confusing API error later.
+    raise RuntimeError("API_KEY is not set. Add it to your .env file.")
 
-# Define the headers for the API request to VirusTotal, including the API key for authentication.
-headers = {
+VT_BASE_URL = "https://www.virustotal.com/api/v3/ip_addresses"
+ALLOWED_ORIGINS = {
+    "http://127.0.0.1:5500",                 # local Live Server
+    "https://jp3379a-nulondon.github.io",    # GitHub Pages (origin only!)
+}
+REQUEST_TIMEOUT = 6  # seconds
+
+HEADERS = {
     "Accept": "application/json",
-    "x-apikey": API_KEY
+    "x-apikey": API_KEY,
 }
 
+app = Flask(__name__)
+
+
+# --- CORS --------------------------------------------------------------------
 
 @app.after_request
 def add_cors_headers(response):
-    response.headers["Access-Control-Allow-Origin"] = "http://127.0.0.1:5500"
+    origin = request.headers.get("Origin")
+    if origin in ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
     response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
     return response
 
 
-def validate_ip(ip_address):
+# --- Helpers -----------------------------------------------------------------
+
+def is_valid_ip(ip_address):
+    """Return True if the string is a valid IPv4 or IPv6 address."""
     try:
         ipaddress.ip_address(ip_address)
         return True
@@ -53,89 +67,79 @@ def validate_ip(ip_address):
         return False
 
 
-def get_ip_information(ip_address):
-    api_url = f"https://www.virustotal.com/api/v3/ip_addresses/{ip_address}"
+def fetch_ip_data(ip_address):
+    """Call VirusTotal and return the parsed JSON.
 
-    try:
-        api_response = requests.get(api_url, headers=headers, timeout=6)
-
-        if api_response.status_code == 200: # Code 200 indicates a successful request
-            return api_response.json()
-
-        return {
-            "error": f"API request failed with status code {api_response.status_code}. Check API key, URL, or request limit."
-        }
-
-    except requests.exceptions.RequestException as error:
-        return {
-            "error": f"API URL or connection failed. Details: {error}"
-        }
+    Raises requests.HTTPError on a non-2xx response and
+    requests.RequestException on connection/timeout problems, so the
+    caller can handle failures in one place.
+    """
+    response = requests.get(
+        f"{VT_BASE_URL}/{ip_address}",
+        headers=HEADERS,
+        timeout=REQUEST_TIMEOUT,
+    )
+    response.raise_for_status()
+    return response.json()
 
 
-def extract_required_results(ip_address, ip_data):
-    try:
-        stats = ip_data["data"]["attributes"]["last_analysis_stats"]
+def extract_stats(ip_address, ip_data):
+    """Pull the analysis summary out of the VirusTotal response.
 
-        return {
-            "ip_address": ip_address,
-            "malicious": stats.get("malicious", 0),
-            "suspicious": stats.get("suspicious", 0),
-            "undetected": stats.get("undetected", 0),
-            "harmless": stats.get("harmless", 0),
-            #"test": stats.get("test", 0)
-        }
+    Raises KeyError if the expected fields are missing.
+    """
+    stats = ip_data["data"]["attributes"]["last_analysis_stats"]
+    return {
+        "ip_address": ip_address,
+        "malicious": stats.get("malicious", 0),
+        "suspicious": stats.get("suspicious", 0),
+        "undetected": stats.get("undetected", 0),
+        "harmless": stats.get("harmless", 0),
+    }
 
-    except KeyError as error:
-        return {
-            "error": f"Analysis data was not found in the API response. Missing field: {error}"
-        }
 
+def error_response(message, status):
+    """Build a consistent JSON error response."""
+    return jsonify({"success": False, "error": message}), status
+
+
+# --- Routes ------------------------------------------------------------------
 
 @app.route("/api/ip-reputation", methods=["POST", "OPTIONS"])
 def ip_reputation():
     if request.method == "OPTIONS":
         return "", 204
 
-    data = request.get_json() # Get the JSON data from the request body
-
-    """
-    if not data or "ip_address" not in data:
-        return jsonify({
-            "success": False,
-            "error": "No IP address was provided."
-        }), 400
-        """
+    # silent=True returns None instead of raising on a missing/invalid body.
+    data = request.get_json(silent=True)
+    if not data or not data.get("ip_address"):
+        return error_response("No IP address was provided.", 400)
 
     user_ip = data["ip_address"].strip()
+    if not is_valid_ip(user_ip):
+        return error_response(
+            "Invalid IP address. Enter a correctly formatted IP address.", 400
+        )
 
-    if not validate_ip(user_ip):
-        return jsonify({
-            "success": False,
-            "error": "Invalid IP address. Enter a correctly formatted IP address."
-        }), 400
+    try:
+        ip_data = fetch_ip_data(user_ip)
+        results = extract_stats(user_ip, ip_data)
+    except requests.HTTPError as error:
+        status = error.response.status_code
+        return error_response(
+            f"VirusTotal request failed ({status}). "
+            "Check your API key, the IP, or your request limit.",
+            502,
+        )
+    except (KeyError, ValueError):
+        return error_response(
+            "Could not find analysis data in the VirusTotal response.", 502
+        )
+    except requests.RequestException as error:
+        return error_response(f"Could not reach VirusTotal: {error}", 502)
 
-    ip_data = get_ip_information(user_ip)
-
-    if "error" in ip_data:
-        return jsonify({
-            "success": False,
-            "error": ip_data["error"]
-        }), 502
-
-    filtered_results = extract_required_results(user_ip, ip_data)
-
-
-    if "error" in filtered_results:
-        return jsonify({
-            "success": False,
-            "error": filtered_results["error"]
-        }), 500
-
-    return jsonify({
-        "success": True,
-        "results": filtered_results
-    })
+    return jsonify({"success": True, "results": results})
 
 
 if __name__ == "__main__":
-    app.run() #(debug=True)
+    app.run()  # add debug=True only for local development
